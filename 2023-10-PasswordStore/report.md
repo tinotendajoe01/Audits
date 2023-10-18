@@ -1,10 +1,7 @@
 ---
-title: Protocol Audit Report
+# Title: PasswordStore Audit Report
 author: Tinotendajoe
 date: October 23, 2023
-header-includes:
-  - \usepackage{titling}
-  - \usepackage{graphicx}
 ---
 
 Prepared by: [Tinotenda Joe](https://x.com/tinotendajoe01)
@@ -18,19 +15,19 @@ Prepared by: [Tinotenda Joe](https://x.com/tinotendajoe01)
   - [Severity Criteria](#severity-criteria)
   - [Summary of Findings](#summary-of-findings)
   - [Tools Used](#tools-used)
+- [Critical](#critical)
 - [High](#high)
 - [Medium](#medium)
 - [Low](#low)
 - [Informational](#informational)
-- [Gas](#gas)
 
 # Disclaimer
 
-Please note that this audit report is based on the provided information and code snippets. It is important to conduct a thorough review and testing of the entire protocol to ensure its security and functionality.
+Please note that this audit report is based on the provided information and code from [codehawks](https://github.com/Cyfrin/2023-10-PasswordStore).
 
-# Protocol Summary
+# Summary
 
-The protocol aims to provide a secure password storage mechanism on the blockchain. It includes features such as access control, password hashing, error handling, and input validation.
+The PasswordStore aims to provide a secure password storage mechanism on the blockchain. It allows owner to store a private password that others won't be able to see. and lets owner update the password at any time
 
 # Audit Details
 
@@ -43,107 +40,153 @@ The audit focused on the security aspects of the PasswordStore contract and iden
 The severity of the identified issues was categorized into the following levels:
 
 - Critical: Vulnerabilities that can compromise the security of the contract.
-- High: Issues that can potentially expose sensitive data or lead to security risks.
-- Medium: Areas where error handling and input validation can be improved.
-- Low: Considerations for limited functionality
-
-- Low: Considerations for limited functionality and additional input validation.
-- Informational: Suggestions for gas efficiency optimizations.
+- High: Significant issues that can lead to vulnerabilities or unexpected behavior.
+- Medium: Areas where the code logic can be improved.
+- Low: Considerations for limited functionality and additional validations.
+- Informational: Suggestions for gas efficiency optimizations and code best practices
 
 ## Summary of Findings
 
-1. Critical:
+### Critical
 
-   - Lack of Access Control: The contract allows anyone to set a new password, compromising its security. It is recommended to add a modifier to restrict the `setPassword` function to only the owner. This can be achieved by implementing the `onlyOwner` modifier and checking the `msg.sender` against the owner's address.
-   - Alternative Solution: Inheriting the `Ownable` contract in the `PasswordStore` contract can provide built-in access control functionality.
+- Lack of Access Control
+  - This vulnerability in the contract allows anyone to set a new password, compromising the security of the contract.
 
-2. High:
+### High
 
-   - Visibility of Password: Storing the password as a private variable on the blockchain without additional encryption or secure storage mechanisms can potentially expose sensitive data. It is recommended to modify the `PasswordStore` contract to store the hashed version of the password instead of the plain text password. This can be achieved by using the `keccak256` hash function to compute the password hash and storing it in a `bytes32` variable.
+- Missing Input Validation
+  - Lack of input validation on the `newPassword` parameter can lead to potential vulnerabilities and attacks.
 
-3. Medium:
+### Medium
 
-   - Error Handling: While the custom error handling approach is valid, it is important to ensure that all potential error scenarios are properly handled to prevent unexpected behavior. It is recommended to review the error handling logic and ensure that appropriate error messages and actions are implemented.
-   - Missing Input Validation: Lack of input validation on the `newPassword` parameter can lead to potential vulnerabilities and attacks. It is recommended to implement input validation to ensure that the `newPassword` parameter meets certain criteria, such as length or format requirements.
+- Error Handling
+  - incomplete error handling
 
-4. Low:
+### Low
 
-   - Limited Functionality: The contract's limited functionality may not directly impact security but could be a consideration depending on the specific requirements of the use case.
-   - Missing Input Validation: Implementing input validation to ensure the `newPassword` parameter meets certain criteria can further enhance the security of the contract.
+- Lack of Event Data
+  - The "SetNetPassword" event is defined but doesn't emit any data.
 
-5. Informational:
-   - Gas Efficiency: Gas efficiency is not a vulnerability but rather a consideration for optimizing the contract's execution cost. It is important to review the contract for any gas-intensive operations and consider potential optimizations.
+### Informational
 
-## Tools Used
+-Gas Efficiency
+-Gas efficiency is not a vulnerability but rather a consideration for optimizing the contract's execution cost. It is recommended to review the contract for any gas-intensive operations and consider potential optimizations.
 
-The audit was conducted using manual code review techniques and analysis of the provided code snippets.
+---
 
-# Critical
+# Critical Findings
 
-- ## Lack of Access Control:
-  - This vulnerability allows anyone to set a new password, compromising the security of the contract.
-  - we must consider adding a modifier to restrict the setPassword fx to only the owner
+## Lack of Access Control
 
-```
+- Vulnerability:
+
+  - The contract currently allows anyone to set a new password, compromising the security of the contract. This means that any address can change the stored password, which contradicts the goal of a private password storage.
+
+- Mitigation:
+
+  - To mitigate this vulnerability, we should implement proper access control to ensure that only the owner of the contract can update the password. We can achieve this by either:
+
+    1.  Creating a custom `onlyOwner` modifier and checking the `msg.sender` against the owner's address.
+
+```solidity
 error ONLY_OWNER_CAN_SET_NEW_PASSWORD();
 
- modifier onlyOwner() {
-     if(msg.sender == s_owner) revert ONLY_OWNER_CAN_SET_NEW_PASSWORD();
-     _;
- }
+modifier onlyOwner() {
+    if (msg.sender == s_owner) revert ONLY_OWNER_CAN_SET_NEW_PASSWORD();
+    _;
+}
 
- function setPassword(string memory newPassword) external onlyOwner {
-     // Rest of the function code
- }
-```
-
-- or the ultimatum we can Inherit the Ownable contract in the PasswordStore contract:
-
-```
-import "@openzeppelin/contracts/access/Ownable.sol";
-contract PasswordStore is Ownable {
-    // Rest of the contract code
-    function setPassword(string memory newPassword) external onlyOwner {
+function setPassword(string memory newPassword) external onlyOwner {
     // Rest of the function code
 }
+```
+
+2.  Inheriting the `Ownable` contract from OpenZeppelin to provide built-in access control functionality.
+
+```solidity
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+contract PasswordStore is Ownable {
+    // Rest of the contract code
+
+    function setPassword(string memory newPassword) external onlyOwner {
+        // Rest of the function code
+    }
 }
 ```
+
+---
 
 # High
 
-- Error Handling: While the custom error handling approach is valid, it is important to ensure that all potential error scenarios are properly handled to prevent unexpected behavior. It is recommended to review the error handling logic and ensure that appropriate error messages and actions are implemented.
+## Missing Input Validation For `'newPassword'`
+
+- Vulnerability: Gas Exhaustion:
+
+  - Lack of input validation on the `newPassword` parameter can lead to potential vulnerabilities or attacks. Without proper validation, malicious or unintended input may be accepted, potentially leading to issues. such as
+  - An attacker or an unaware user could set an exceptionally long password, which could consume a significant amount of gas when storing or processing the input data. This could lead to `out-of-gas errors` and disrupt the contract's functionality with transaction errors related to function argument encoding. In this case if a user send a transaction to the smart contract's `setPassword`, the arguments they provide must be correctly encoded according to the contract's ABI. If the encoding doesn't match the expected function signature which in this sase for
+    setPassword is `290bb453` and argument types `setPassword(string)`, they'll receive an error `base fee exceeds gas limit`.
+  - This error can be classified as a transaction data validation error, and it's not necessarily a vulnerability in the contract itself. It's more related to how transactions are formed and sent to the contract. This kind of error usually happens when the transaction data exceeds the gas limit, when data types are incompatible, or when data is improperly formatted.
+
+- Mitigation:
+  - To mitigate this vulnerability/bug in our contract, we must implement input validation in the `setPassword` function. Check for criteria such as minimum and maximum password length, special character requirements, and complex password criteria. This ensures that only valid and secure passwords are accepted.
+
+---
 
 # Medium
 
-- ## Visibility of Password:
-  - Storing the password as a private variable on the blockchain without additional encryption or secure storage mechanisms can potentially expose sensitive data.
-  - It is recommended to modify the `PasswordStore` contract to store the hashed version of the password instead of the plain text password.
-  - This can be achieved by using the `keccak256` hash function to compute the password hash and storing it in a `bytes32` variable.
+## Error Handling
 
-```
-contract PasswordStore is Ownable {
-bytes32 private s_passwordHash;
+- Vulnerability:
 
-// Rest of the contract code
+  - The contract uses custom error handling, which is a valid approach. However, it is crucial to ensure that all potential error scenarios are properly handled to prevent unexpected behavior.
+  - Incomplete or inconsistent error handling can lead to vulnerabilities or unexpected contract states.
+
+- Mitigation:
+
+  - To mitigate this issue, we must review the error handling logic and ensure that appropriate error messages and actions are implemented for all relevant error scenarios.
+  - This is noted by the absense of an error handler in the `setPassword` fx not handling for the case where the user is not the owner.
+  - We must ensure that the contract behaves predictably in error situations and that users receive clear error messages.
+
+---
+
+# Lows
+
+## Lack of Event Data
+
+- Vulnerability:
+
+  - The "SetNetPassword" event is defined but doesn't emit any data. The lack of event data in this contract affects transparency and the ability to understand state changes.
+
+- Mitigation:
+
+  - To mitigate this issue, we should modify the contract to emit relevant data with events. This enhances transparency and off-chain analysis, making it easier for users to understand what has occurred within the contract.
+  - we can modify the event definition and the `setPassword` function as follows:
+
+```solidity
+event SetNetPassword(address indexed owner, string newPassword);
 
 function setPassword(string memory newPassword) external onlyOwner {
-s_passwordHash = keccak256(abi.encodePacked(newPassword));
-emit SetNetPassword();
+    s_password = newPassword;
+    emit SetNetPassword(s_owner, newPassword);
 }
 
-// Rest of the contract code
-}
+
 ```
-
-# Low
-
-- Limited Functionality: The contract's limited functionality may not directly impact security but could be a consideration depending on the specific requirements of the use case.
-- Missing Input Validation: Lack of input validation on the `newPassword` parameter can lead to potential vulnerabilities and attacks. It is recommended to implement input validation to ensure that the `newPassword` parameter meets certain criteria, such as length or format requirements.
 
 # Informational
 
-- Gas Efficiency: Gas efficiency is not a vulnerability but rather a consideration for optimizing the contract's execution cost. It is recommended to review the contract for any gas-intensive operations and consider potential optimizations.
+## Gas Efficiency
+
+### Consideration:
+
+Gas efficiency is not a vulnerability but rather a consideration for optimizing the contract's execution cost. It is important to review the contract for any gas-intensive operations and consider potential optimizations to reduce transaction costs for users.
 
 ---
 
 Please note that this report is based on the provided information and code snippets. It is important to conduct a thorough review and testing of the entire protocol to ensure its security and functionality.
+
+```
+
+This section provides a detailed breakdown of each finding, including why it is a vulnerability and how to mitigate it. You can copy and paste this detailed section into your audit report.
+```

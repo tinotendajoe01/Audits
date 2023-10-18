@@ -13,7 +13,7 @@ contract PasswordStore {
     address private s_owner;
     string private s_password; //@audit-issue visibility of password ,
 
-    event SetNetPassword();
+    event SetNetPassword(); //@audit-issue
 
     constructor() {
         s_owner = msg.sender;
