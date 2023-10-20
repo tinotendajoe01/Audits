@@ -11,9 +11,9 @@ contract PasswordStore {
     error PasswordStore__NotOwner();
 
     address private s_owner;
-    string private s_password; //@audit-issue visibility of password ,
+    string private s_password;
 
-    event SetNetPassword(); //@audit-issue
+    event SetNetPassword();
 
     constructor() {
         s_owner = msg.sender;
@@ -24,8 +24,7 @@ contract PasswordStore {
      * @param newPassword The new password to set.
      */
     function setPassword(string memory newPassword) external {
-        //@audit-issue lack of access control
-        s_password = newPassword; //@audit-issue missing input validation
+        s_password = newPassword;
         emit SetNetPassword();
     }
 
